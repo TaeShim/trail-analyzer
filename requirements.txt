@@ -1,0 +1,14 @@
+numpy
+pandas
+matplotlib
+geopandas
+osmnx
+openmeteo-requests
+requests-cache 
+retry-requests 
+praw
+python-dotenv
+transformers
+torch
+osmapi
+databricks-sql-connector
