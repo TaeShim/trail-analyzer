@@ -13,3 +13,4 @@ torch
 osmapi
 databricks-sql-connector
 dotenv
+pathlib
