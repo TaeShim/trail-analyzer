@@ -12,3 +12,4 @@ transformers
 torch
 osmapi
 databricks-sql-connector
+dotenv
