@@ -3,24 +3,25 @@ from dotenv import load_dotenv
 from databricks import sql
 import sys
 import os
-from ingestion.trails_api import trails_data
-from ingestion.gear_review_api import create_df
 from pathlib import Path
 
 def project_root():
-    # When running as a script (Python script task / local)
+    #When running as a script (Python script task / local)
     if "__file__" in globals():
         return Path(__file__).resolve().parents[1]
 
-    # When running in a Databricks notebook: allow override via env,
-    # else fall back to current working directory
+    #When running in a Databricks notebook: allow override via env,
+    #Else fall back to current working directory
     env_root = os.getenv("PROJECT_ROOT")
     if env_root:
         return Path(env_root).resolve()
 
-    return Path.cwd()  # works if you launch from the repo root
+    return Path.cwd() 
 
 sys.path.append(str(project_root()))
+
+from ingestion.trails_api import trails_data
+from ingestion.gear_review_api import create_df
 
 
 load_dotenv()
