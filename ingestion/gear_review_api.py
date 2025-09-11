@@ -4,12 +4,24 @@ from dotenv import load_dotenv
 import pandas as pd
 import re, unicodedata
 from transformers import pipeline
-import dbutils
 
-# Get secrets from Databricks (dbutils is automatically available in Databricks)
-REDDIT_USER_AGENT   = dbutils.secrets.get("trailanalyzer-dev", "REDDIT_USER_AGENT")
-REDDIT_CLIENT_ID    = dbutils.secrets.get("trailanalyzer-dev", "REDDIT_CLIENT_ID")
-REDDIT_CLIENT_SECRET= dbutils.secrets.get("trailanalyzer-dev", "REDDIT_CLIENT_SECRET")
+# Get secrets from Databricks - handle both notebook and job contexts
+try:
+    # In Databricks notebook context
+    REDDIT_USER_AGENT   = dbutils.secrets.get("trailanalyzer-dev", "REDDIT_USER_AGENT")
+    REDDIT_CLIENT_ID    = dbutils.secrets.get("trailanalyzer-dev", "REDDIT_CLIENT_ID")
+    REDDIT_CLIENT_SECRET= dbutils.secrets.get("trailanalyzer-dev", "REDDIT_CLIENT_SECRET")
+    print("Successfully retrieved Reddit API credentials from Databricks secrets")
+except NameError:
+    # In Databricks job context - dbutils might not be available
+    # Use environment variables or job parameters
+    REDDIT_USER_AGENT   = os.environ.get("REDDIT_USER_AGENT")
+    REDDIT_CLIENT_ID    = os.environ.get("REDDIT_CLIENT_ID")
+    REDDIT_CLIENT_SECRET= os.environ.get("REDDIT_CLIENT_SECRET")
+    print("Using environment variables for Reddit API credentials")
+    
+    if not all([REDDIT_USER_AGENT, REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET]):
+        raise ValueError("Reddit API credentials not found in environment variables. Please set them in your Databricks job configuration.")
 
 reddit = praw.Reddit(
     client_id=REDDIT_CLIENT_ID,

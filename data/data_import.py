@@ -2,9 +2,7 @@ import os
 from dotenv import load_dotenv
 from databricks import sql
 import sys
-import os
 from pathlib import Path
-import dbutils
 
 if "__file__" in globals():
     # Running as a script / job: use the repo root = parent of this file's directory
@@ -19,17 +17,26 @@ else:
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-REDDIT_USER_AGENT   = dbutils.secrets.get("trailanalyzer-dev", "REDDIT_USER_AGENT")
-REDDIT_CLIENT_ID    = dbutils.secrets.get("trailanalyzer-dev", "REDDIT_CLIENT_ID")
-REDDIT_CLIENT_SECRET= dbutils.secrets.get("trailanalyzer-dev", "REDDIT_CLIENT_SECRET")
-
 from ingestion.trails_api import trails_data
 from ingestion.gear_review_api import create_df
 
-# In Databricks environment
-DB_SERVER_HOSTNAME  = dbutils.secrets.get("trailanalyzer-dev", "DB_SERVER_HOSTNAME")
-DB_HTTP_PATH        = dbutils.secrets.get("trailanalyzer-dev", "DB_HTTP_PATH")
-DB_TOKEN            = dbutils.secrets.get("trailanalyzer-dev", "DB_TOKEN")
+# Get database credentials - handle both notebook and job contexts
+try:
+    # In Databricks notebook context
+    DB_SERVER_HOSTNAME  = dbutils.secrets.get("trailanalyzer-dev", "DB_SERVER_HOSTNAME")
+    DB_HTTP_PATH        = dbutils.secrets.get("trailanalyzer-dev", "DB_HTTP_PATH")
+    DB_TOKEN            = dbutils.secrets.get("trailanalyzer-dev", "DB_TOKEN")
+    print("Successfully retrieved database credentials from Databricks secrets")
+except NameError:
+    # In Databricks job context - dbutils might not be available
+    # Use environment variables or job parameters
+    DB_SERVER_HOSTNAME  = os.environ.get("DB_SERVER_HOSTNAME")
+    DB_HTTP_PATH        = os.environ.get("DB_HTTP_PATH")
+    DB_TOKEN            = os.environ.get("DB_TOKEN")
+    print("Using environment variables for database credentials")
+    
+    if not all([DB_SERVER_HOSTNAME, DB_HTTP_PATH, DB_TOKEN]):
+        raise ValueError("Database credentials not found in environment variables. Please set them in your Databricks job configuration.")
 
 def get_databricks_connection():
     """Get Databricks connection"""
