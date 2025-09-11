@@ -11,12 +11,25 @@ try:
     REDDIT_USER_AGENT   = dbutils.secrets.get("trailanalyzer-dev", "REDDIT_USER_AGENT")
     REDDIT_CLIENT_ID    = dbutils.secrets.get("trailanalyzer-dev", "REDDIT_CLIENT_ID")
     REDDIT_CLIENT_SECRET= dbutils.secrets.get("trailanalyzer-dev", "REDDIT_CLIENT_SECRET")
-except:
+    print("Using Databricks secrets for Reddit API")
+except Exception as e:
+    print(f"Failed to get Databricks secrets: {e}")
     # Fallback to environment variables for local development
     load_dotenv()
     REDDIT_USER_AGENT   = os.getenv("REDDIT_USER_AGENT")
     REDDIT_CLIENT_ID    = os.getenv("REDDIT_CLIENT_ID")
     REDDIT_CLIENT_SECRET= os.getenv("REDDIT_CLIENT_SECRET")
+    print("Using environment variables for Reddit API")
+
+# Validate that we have the required credentials
+if not all([REDDIT_USER_AGENT, REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET]):
+    missing = []
+    if not REDDIT_USER_AGENT: missing.append("REDDIT_USER_AGENT")
+    if not REDDIT_CLIENT_ID: missing.append("REDDIT_CLIENT_ID")
+    if not REDDIT_CLIENT_SECRET: missing.append("REDDIT_CLIENT_SECRET")
+    
+    raise ValueError(f"Missing required Reddit API credentials: {', '.join(missing)}. "
+                    "Please set these in Databricks secrets scope 'trailanalyzer-dev' or as environment variables.")
 
 reddit = praw.Reddit(
     client_id=REDDIT_CLIENT_ID,

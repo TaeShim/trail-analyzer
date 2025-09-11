@@ -28,7 +28,9 @@ try:
     DB_SERVER_HOSTNAME  = dbutils.secrets.get("trailanalyzer-dev", "DB_SERVER_HOSTNAME")
     DB_HTTP_PATH        = dbutils.secrets.get("trailanalyzer-dev", "DB_HTTP_PATH")
     DB_TOKEN            = dbutils.secrets.get("trailanalyzer-dev", "DB_TOKEN")
-except:
+    print("Using Databricks secrets for database connection")
+except Exception as e:
+    print(f"Failed to get Databricks secrets: {e}")
     # Fallback to environment variables for local development
     import os
     from dotenv import load_dotenv
@@ -36,6 +38,17 @@ except:
     DB_SERVER_HOSTNAME  = os.getenv("DB_SERVER_HOSTNAME")
     DB_HTTP_PATH        = os.getenv("DB_HTTP_PATH")
     DB_TOKEN            = os.getenv("DB_TOKEN")
+    print("Using environment variables for database connection")
+
+# Validate that we have the required database credentials
+if not all([DB_SERVER_HOSTNAME, DB_HTTP_PATH, DB_TOKEN]):
+    missing = []
+    if not DB_SERVER_HOSTNAME: missing.append("DB_SERVER_HOSTNAME")
+    if not DB_HTTP_PATH: missing.append("DB_HTTP_PATH")
+    if not DB_TOKEN: missing.append("DB_TOKEN")
+    
+    raise ValueError(f"Missing required database credentials: {', '.join(missing)}. "
+                    "Please set these in Databricks secrets scope 'trailanalyzer-dev' or as environment variables.")
 
 def get_databricks_connection():
     """Get Databricks connection"""
