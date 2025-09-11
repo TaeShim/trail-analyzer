@@ -22,12 +22,10 @@ if str(REPO_ROOT) not in sys.path:
 from ingestion.trails_api import trails_data
 from ingestion.gear_review_api import create_df
 
-# Get secrets from Databricks
+# In Databricks environment
 DB_SERVER_HOSTNAME  = dbutils.secrets.get("trailanalyzer-dev", "DB_SERVER_HOSTNAME")
 DB_HTTP_PATH        = dbutils.secrets.get("trailanalyzer-dev", "DB_HTTP_PATH")
 DB_TOKEN            = dbutils.secrets.get("trailanalyzer-dev", "DB_TOKEN")
-
-print("Successfully retrieved database credentials from Databricks secrets")
 
 def get_databricks_connection():
     """Get Databricks connection"""

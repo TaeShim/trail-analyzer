@@ -4,6 +4,7 @@ from dotenv import load_dotenv
 import pandas as pd
 import re, unicodedata
 from transformers import pipeline
+import dbutils
 
 # Get secrets from Databricks
 REDDIT_USER_AGENT   = dbutils.secrets.get("trailanalyzer-dev", "REDDIT_USER_AGENT")
