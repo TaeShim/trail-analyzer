@@ -5,23 +5,29 @@ import pandas as pd
 import re, unicodedata
 from transformers import pipeline
 
-# Get secrets from Databricks - handle both notebook and job contexts
+# Get secrets from Databricks - dbutils should be available in Databricks environment
 try:
-    # In Databricks notebook context
+    # Check if dbutils is available
+    if 'dbutils' not in globals():
+        raise NameError("dbutils is not available in this environment")
+    
+    # Get Reddit API credentials from Databricks secrets
     REDDIT_USER_AGENT   = dbutils.secrets.get("trailanalyzer-dev", "REDDIT_USER_AGENT")
     REDDIT_CLIENT_ID    = dbutils.secrets.get("trailanalyzer-dev", "REDDIT_CLIENT_ID")
     REDDIT_CLIENT_SECRET= dbutils.secrets.get("trailanalyzer-dev", "REDDIT_CLIENT_SECRET")
     print("Successfully retrieved Reddit API credentials from Databricks secrets")
-except NameError:
-    # In Databricks job context - dbutils might not be available
-    # Use environment variables or job parameters
-    REDDIT_USER_AGENT   = os.environ.get("REDDIT_USER_AGENT")
-    REDDIT_CLIENT_ID    = os.environ.get("REDDIT_CLIENT_ID")
-    REDDIT_CLIENT_SECRET= os.environ.get("REDDIT_CLIENT_SECRET")
-    print("Using environment variables for Reddit API credentials")
     
-    if not all([REDDIT_USER_AGENT, REDDIT_CLIENT_ID, REDDIT_CLIENT_SECRET]):
-        raise ValueError("Reddit API credentials not found in environment variables. Please set them in your Databricks job configuration.")
+except NameError as e:
+    raise RuntimeError(
+        f"dbutils is not available in this environment: {e}. "
+        "This code must be run in a Databricks notebook or job context where dbutils is automatically available. "
+        "Please run this code in Databricks, not in a local Python environment."
+    )
+except Exception as e:
+    raise RuntimeError(
+        f"Failed to retrieve Reddit API credentials from Databricks secrets: {e}. "
+        "Please ensure your secrets are properly configured in the 'trailanalyzer-dev' scope."
+    )
 
 reddit = praw.Reddit(
     client_id=REDDIT_CLIENT_ID,

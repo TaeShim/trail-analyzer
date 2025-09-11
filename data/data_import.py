@@ -20,23 +20,29 @@ if str(REPO_ROOT) not in sys.path:
 from ingestion.trails_api import trails_data
 from ingestion.gear_review_api import create_df
 
-# Get database credentials - handle both notebook and job contexts
+# Get database credentials from Databricks secrets - dbutils should be available in Databricks environment
 try:
-    # In Databricks notebook context
+    # Check if dbutils is available
+    if 'dbutils' not in globals():
+        raise NameError("dbutils is not available in this environment")
+    
+    # Get database credentials from Databricks secrets
     DB_SERVER_HOSTNAME  = dbutils.secrets.get("trailanalyzer-dev", "DB_SERVER_HOSTNAME")
     DB_HTTP_PATH        = dbutils.secrets.get("trailanalyzer-dev", "DB_HTTP_PATH")
     DB_TOKEN            = dbutils.secrets.get("trailanalyzer-dev", "DB_TOKEN")
     print("Successfully retrieved database credentials from Databricks secrets")
-except NameError:
-    # In Databricks job context - dbutils might not be available
-    # Use environment variables or job parameters
-    DB_SERVER_HOSTNAME  = os.environ.get("DB_SERVER_HOSTNAME")
-    DB_HTTP_PATH        = os.environ.get("DB_HTTP_PATH")
-    DB_TOKEN            = os.environ.get("DB_TOKEN")
-    print("Using environment variables for database credentials")
     
-    if not all([DB_SERVER_HOSTNAME, DB_HTTP_PATH, DB_TOKEN]):
-        raise ValueError("Database credentials not found in environment variables. Please set them in your Databricks job configuration.")
+except NameError as e:
+    raise RuntimeError(
+        f"dbutils is not available in this environment: {e}. "
+        "This code must be run in a Databricks notebook or job context where dbutils is automatically available. "
+        "Please run this code in Databricks, not in a local Python environment."
+    )
+except Exception as e:
+    raise RuntimeError(
+        f"Failed to retrieve database credentials from Databricks secrets: {e}. "
+        "Please ensure your secrets are properly configured in the 'trailanalyzer-dev' scope."
+    )
 
 def get_databricks_connection():
     """Get Databricks connection"""
