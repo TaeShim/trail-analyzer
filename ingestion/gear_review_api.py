@@ -4,11 +4,19 @@ from dotenv import load_dotenv
 import pandas as pd
 import re, unicodedata
 from transformers import pipeline
-import dbutils
 
-REDDIT_USER_AGENT   = dbutils.secrets.get("trailanalyzer-dev", "REDDIT_USER_AGENT")
-REDDIT_CLIENT_ID    = dbutils.secrets.get("trailanalyzer-dev", "REDDIT_CLIENT_ID")
-REDDIT_CLIENT_SECRET= dbutils.secrets.get("trailanalyzer-dev", "REDDIT_CLIENT_SECRET")
+# Try to get secrets from Databricks, fall back to environment variables
+try:
+    # In Databricks environment
+    REDDIT_USER_AGENT   = dbutils.secrets.get("trailanalyzer-dev", "REDDIT_USER_AGENT")
+    REDDIT_CLIENT_ID    = dbutils.secrets.get("trailanalyzer-dev", "REDDIT_CLIENT_ID")
+    REDDIT_CLIENT_SECRET= dbutils.secrets.get("trailanalyzer-dev", "REDDIT_CLIENT_SECRET")
+except:
+    # Fallback to environment variables for local development
+    load_dotenv()
+    REDDIT_USER_AGENT   = os.getenv("REDDIT_USER_AGENT")
+    REDDIT_CLIENT_ID    = os.getenv("REDDIT_CLIENT_ID")
+    REDDIT_CLIENT_SECRET= os.getenv("REDDIT_CLIENT_SECRET")
 
 reddit = praw.Reddit(
     client_id=REDDIT_CLIENT_ID,

@@ -22,9 +22,20 @@ if str(REPO_ROOT) not in sys.path:
 from ingestion.trails_api import trails_data
 from ingestion.gear_review_api import create_df
 
-DB_SERVER_HOSTNAME  = dbutils.secrets.get("trailanalyzer-dev", "DB_SERVER_HOSTNAME")
-DB_HTTP_PATH        = dbutils.secrets.get("trailanalyzer-dev", "DB_HTTP_PATH")
-DB_TOKEN            = dbutils.secrets.get("trailanalyzer-dev", "DB_TOKEN")
+# Try to get secrets from Databricks, fall back to environment variables
+try:
+    # In Databricks environment
+    DB_SERVER_HOSTNAME  = dbutils.secrets.get("trailanalyzer-dev", "DB_SERVER_HOSTNAME")
+    DB_HTTP_PATH        = dbutils.secrets.get("trailanalyzer-dev", "DB_HTTP_PATH")
+    DB_TOKEN            = dbutils.secrets.get("trailanalyzer-dev", "DB_TOKEN")
+except:
+    # Fallback to environment variables for local development
+    import os
+    from dotenv import load_dotenv
+    load_dotenv()
+    DB_SERVER_HOSTNAME  = os.getenv("DB_SERVER_HOSTNAME")
+    DB_HTTP_PATH        = os.getenv("DB_HTTP_PATH")
+    DB_TOKEN            = os.getenv("DB_TOKEN")
 
 def get_databricks_connection():
     """Get Databricks connection"""
