@@ -22,33 +22,12 @@ if str(REPO_ROOT) not in sys.path:
 from ingestion.trails_api import trails_data
 from ingestion.gear_review_api import create_df
 
-# Try to get secrets from Databricks, fall back to environment variables
-try:
-    # In Databricks environment
-    DB_SERVER_HOSTNAME  = dbutils.secrets.get("trailanalyzer-dev", "DB_SERVER_HOSTNAME")
-    DB_HTTP_PATH        = dbutils.secrets.get("trailanalyzer-dev", "DB_HTTP_PATH")
-    DB_TOKEN            = dbutils.secrets.get("trailanalyzer-dev", "DB_TOKEN")
-    print("Using Databricks secrets for database connection")
-except Exception as e:
-    print(f"Failed to get Databricks secrets: {e}")
-    # Fallback to environment variables for local development
-    import os
-    from dotenv import load_dotenv
-    load_dotenv()
-    DB_SERVER_HOSTNAME  = os.getenv("DB_SERVER_HOSTNAME")
-    DB_HTTP_PATH        = os.getenv("DB_HTTP_PATH")
-    DB_TOKEN            = os.getenv("DB_TOKEN")
-    print("Using environment variables for database connection")
+# Get secrets from Databricks
+DB_SERVER_HOSTNAME  = dbutils.secrets.get("trailanalyzer-dev", "DB_SERVER_HOSTNAME")
+DB_HTTP_PATH        = dbutils.secrets.get("trailanalyzer-dev", "DB_HTTP_PATH")
+DB_TOKEN            = dbutils.secrets.get("trailanalyzer-dev", "DB_TOKEN")
 
-# Validate that we have the required database credentials
-if not all([DB_SERVER_HOSTNAME, DB_HTTP_PATH, DB_TOKEN]):
-    missing = []
-    if not DB_SERVER_HOSTNAME: missing.append("DB_SERVER_HOSTNAME")
-    if not DB_HTTP_PATH: missing.append("DB_HTTP_PATH")
-    if not DB_TOKEN: missing.append("DB_TOKEN")
-    
-    raise ValueError(f"Missing required database credentials: {', '.join(missing)}. "
-                    "Please set these in Databricks secrets scope 'trailanalyzer-dev' or as environment variables.")
+print("Successfully retrieved database credentials from Databricks secrets")
 
 def get_databricks_connection():
     """Get Databricks connection"""
