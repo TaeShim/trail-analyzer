@@ -25,3 +25,4 @@ transformers>=4.30.0
 
 # Databricks
 databricks-sql-connector>=3.0.0
+dbutils
