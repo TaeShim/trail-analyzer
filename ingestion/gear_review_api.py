@@ -4,13 +4,16 @@ from dotenv import load_dotenv
 import pandas as pd
 import re, unicodedata
 from transformers import pipeline
+import dbutils
 
-load_dotenv()
+REDDIT_USER_AGENT   = dbutils.secrets.get("trailanalyzer-dev", "REDDIT_USER_AGENT")
+REDDIT_CLIENT_ID    = dbutils.secrets.get("trailanalyzer-dev", "REDDIT_CLIENT_ID")
+REDDIT_CLIENT_SECRET= dbutils.secrets.get("trailanalyzer-dev", "REDDIT_CLIENT_SECRET")
 
 reddit = praw.Reddit(
-    client_id=os.getenv("REDDIT_CLIENT_ID"),
-    client_secret=os.getenv("REDDIT_SECRET"),    
-    user_agent=os.getenv("REDDIT_USER_AGENT")
+    client_id=REDDIT_CLIENT_ID,
+    client_secret=REDDIT_CLIENT_SECRET,    
+    user_agent=REDDIT_USER_AGENT
 )
 
 outdoor_gear_brands = [

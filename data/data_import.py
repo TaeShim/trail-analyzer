@@ -4,6 +4,7 @@ from databricks import sql
 import sys
 import os
 from pathlib import Path
+import dbutils
 
 if "__file__" in globals():
     # Running as a script / job: use the repo root = parent of this file's directory
@@ -21,13 +22,15 @@ if str(REPO_ROOT) not in sys.path:
 from ingestion.trails_api import trails_data
 from ingestion.gear_review_api import create_df
 
-load_dotenv()
+DB_SERVER_HOSTNAME  = dbutils.secrets.get("trailanalyzer-dev", "DB_SERVER_HOSTNAME")
+DB_HTTP_PATH        = dbutils.secrets.get("trailanalyzer-dev", "DB_HTTP_PATH")
+DB_TOKEN            = dbutils.secrets.get("trailanalyzer-dev", "DB_TOKEN")
 
 def get_databricks_connection():
     """Get Databricks connection"""
-    DB_HOST = os.getenv('DB_SERVER_HOSTNAME')
-    DB_HTTP = os.getenv('DB_HTTP_PATH')
-    DB_TOKEN = os.getenv('DB_TOKEN')
+    DB_HOST = DB_SERVER_HOSTNAME
+    DB_HTTP = DB_HTTP_PATH
+    DB_TOKEN = DB_TOKEN
     
     return sql.connect(server_hostname=DB_HOST, http_path=DB_HTTP, access_token=DB_TOKEN)
 
