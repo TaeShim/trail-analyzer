@@ -5,24 +5,21 @@ import sys
 import os
 from pathlib import Path
 
-def project_root():
-    #When running as a script (Python script task / local)
-    if "__file__" in globals():
-        return Path(__file__).resolve().parents[1]
+if "__file__" in globals():
+    # Running as a script / job: use the repo root = parent of this file's directory
+    REPO_ROOT = Path(__file__).resolve().parents[1]
+else:
+    # Running inside a Databricks notebook: use env var if set, else hardcode your repo path
+    REPO_ROOT = Path(os.getenv(
+        "PROJECT_ROOT",
+        "/Workspace/Users/taehyungg4@gmail.com/trail-analyzer"  # <-- adjust if needed
+    )).resolve()
 
-    #When running in a Databricks notebook: allow override via env,
-    #Else fall back to current working directory
-    env_root = os.getenv("PROJECT_ROOT")
-    if env_root:
-        return Path(env_root).resolve()
-
-    return Path.cwd() 
-
-sys.path.append(str(project_root()))
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
 
 from ingestion.trails_api import trails_data
 from ingestion.gear_review_api import create_df
-
 
 load_dotenv()
 
