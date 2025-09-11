@@ -1,17 +1,27 @@
-numpy
-pandas
-matplotlib
-geopandas
-osmnx
-openmeteo-requests
-requests-cache 
-retry-requests 
-praw
-python-dotenv
-transformers
-torch
-osmapi
-databricks-sql-connector
-dotenv
-pathlib
-dbutiils
+# Core data science packages (with versions for stability)
+numpy>=1.24.0
+pandas>=2.0.0
+matplotlib>=3.7.0
+
+# Geospatial packages
+geopandas>=0.13.0
+osmnx>=1.6.0
+
+# API and web requests
+requests>=2.31.0
+openmeteo-requests>=1.3.0
+requests-cache>=1.1.0
+retry-requests>=1.0.0
+
+# Reddit API
+praw>=7.7.0
+
+# Environment and configuration
+python-dotenv>=1.0.0
+
+# ML and NLP (lighter alternatives for Databricks)
+transformers>=4.30.0
+# torch>=2.0.0  # Commented out - often pre-installed in Databricks
+
+# Databricks
+databricks-sql-connector>=3.0.0
