@@ -91,7 +91,7 @@ def get_weather_for_coordinate(lat, lon, date=None):
 def get_weather_batch(coordinates, date=None):
     """
     Get weather data for multiple coordinates in a single API call
-    Much faster than individual calls!
+    Much faster than individual calls
     """
     if date is None:
         date = dt.date.today() - dt.timedelta(days=1)
@@ -262,7 +262,7 @@ def trails_data(include_weather=True, weather_date=None, deduplicate=True, batch
             else:
                 # Add empty weather fields if API call failed
                 trail_props.update({
-                    "weather_date": weather_date or dt.date.today() - timedelta(days=1),
+                    "weather_date": weather_date or dt.date.today() - dt.timedelta(days=1),
                     "temperature_2m_max": None,
                     "temperature_2m_min": None,
                     "wind_speed_10m_max": None,
