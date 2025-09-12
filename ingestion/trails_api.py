@@ -94,7 +94,7 @@ def get_weather_batch(coordinates, date=None):
     Much faster than individual calls!
     """
     if date is None:
-        date = dt.date.today() - timedelta(days=1)
+        date = dt.date.today() - dt.timedelta(days=1)
     
     if not coordinates:
         return {}
