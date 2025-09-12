@@ -1,3 +1,4 @@
+
 import requests
 import geopandas as gpd
 from shapely.geometry import LineString
@@ -5,7 +6,6 @@ import openmeteo_requests
 import requests_cache
 from retry_requests import retry
 import datetime as dt
-from datetime import timedelta
 
 def api_call():
     # build Overpass QL query for both trails and peaks
@@ -31,7 +31,7 @@ def get_weather_for_coordinate(lat, lon, date=None):
     Get weather data for a single coordinate
     """
     if date is None:
-        date = dt.date.today() - timedelta(days=1)  # Default to yesterday
+        date = dt.date.today() - dt.timedelta(days=1)  # Default to yesterday
     
     # Setup the Open-Meteo API client with cache and retry on error
     cache_session = requests_cache.CachedSession('.cache', expire_after = 3600)

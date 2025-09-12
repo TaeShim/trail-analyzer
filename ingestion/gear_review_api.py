@@ -4,36 +4,7 @@ from dotenv import load_dotenv
 import pandas as pd
 import re, unicodedata
 from transformers import pipeline
-
-# Get secrets from Databricks - dbutils should be available in Databricks environment
-try:
-    # Check if dbutils is available
-    if 'dbutils' not in globals():
-        raise NameError("dbutils is not available in this environment")
-    
-    # Get Reddit API credentials from Databricks secrets
-    REDDIT_USER_AGENT   = dbutils.secrets.get("trailanalyzer-dev", "REDDIT_USER_AGENT")
-    REDDIT_CLIENT_ID    = dbutils.secrets.get("trailanalyzer-dev", "REDDIT_CLIENT_ID")
-    REDDIT_CLIENT_SECRET= dbutils.secrets.get("trailanalyzer-dev", "REDDIT_CLIENT_SECRET")
-    print("Successfully retrieved Reddit API credentials from Databricks secrets")
-    
-except NameError as e:
-    raise RuntimeError(
-        f"dbutils is not available in this environment: {e}. "
-        "This code must be run in a Databricks notebook or job context where dbutils is automatically available. "
-        "Please run this code in Databricks, not in a local Python environment."
-    )
-except Exception as e:
-    raise RuntimeError(
-        f"Failed to retrieve Reddit API credentials from Databricks secrets: {e}. "
-        "Please ensure your secrets are properly configured in the 'trailanalyzer-dev' scope."
-    )
-
-reddit = praw.Reddit(
-    client_id=REDDIT_CLIENT_ID,
-    client_secret=REDDIT_CLIENT_SECRET,    
-    user_agent=REDDIT_USER_AGENT
-)
+import torch
 
 outdoor_gear_brands = [
     # Big general outdoor brands
@@ -281,7 +252,12 @@ def get_sentiment(text, threshold, method):
         # Default behavior
         return label, score
 
-def create_df(window_words, sentiment_threshold, sentiment_method):
+def create_df(window_words, sentiment_threshold, sentiment_method, client, secret, agent):
+    reddit = praw.Reddit(
+    client_id=client,
+    client_secret=secret,    
+    user_agent=agent
+)
     data = []
 
     for name in subreddits:
