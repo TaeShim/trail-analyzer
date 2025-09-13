@@ -1,10 +1,6 @@
-import praw
-import os
-from dotenv import load_dotenv
-import pandas as pd
-import re, unicodedata
-from transformers import pipeline
-import torch
+# -------------------------------
+# Lists of keywords and brands
+# -------------------------------
 
 outdoor_gear_brands = [
     # Big general outdoor brands
@@ -32,8 +28,10 @@ outdoor_gear_brands = [
     "Prana", "Fjällräven", "Tilley", "Sunday Afternoons", "Montbell"
 ]
 
+# Subreddits where gear discussions are scraped
 subreddits = ["hikinggear", "CampingGear", "hiking", "backpacking", "Campingandhiking"]
 
+# Keywords related to weather/season conditions
 weather_season_words = [
     # Seasons
     "summer", "winter", "fall", "autumn", "spring",
@@ -59,12 +57,13 @@ weather_season_words = [
     "recommendation", "recommendations"
 ]
 
+# Categories of hiking gear to look for in comments
 hiking_gear_categories = [
-    # Clothing - More specific terms first
+    # Clothing - more specific terms first
     "hiking pants", "rain pants", "hiking shorts", "base layer", "thermal", "hiking shirt",
     "fleece", "softshell jacket", "rain jacket", "waterproof jacket", "vest",
     "hat", "beanie", "gloves", "mittens", "hiking socks", "gaiters",
-    "pants", "shorts", "shirt", "jacket", "cap",  # Moved cap to end
+    "pants", "shorts", "shirt", "jacket", "cap",
 
     # Footwear
     "hiking boots", "trail runners", "trail running shoes", "hiking shoes",
@@ -81,8 +80,11 @@ hiking_gear_categories = [
     # Accessories
     "sunglasses", "multitool", "knife", "repair kit"
 ]
+
 # ---------- text utils ----------
+
 def normalize_text(s):
+    """Normalize text by removing odd characters and whitespace."""
     s = s or ""
     s = unicodedata.normalize("NFKC", s)
     s = s.replace("’", "'").replace("–", "-").replace("—", "-")
@@ -90,13 +92,17 @@ def normalize_text(s):
     return s
 
 def compile_brand_regex(brands, extras=None):
+    """
+    Build a regex pattern to match brand names.
+    Excludes common stopwords and supports multi-word brand names.
+    """
     # Common words that should not be treated as brand names
     excluded_words = {"or", "so", "and", "the", "a", "an", "in", "on", "at", "to", "for", "of", "with", "by"}
     
     alts = set()
     for b in brands:
         w = b.lower()
-        w_np = re.sub(r"[^\w\s]", "", w)
+        w_np = re.sub(r"[^\w\s]", "", w)  # remove punctuation
         alts.add(w)
         if w_np != w:
             alts.add(w_np)
@@ -106,9 +112,10 @@ def compile_brand_regex(brands, extras=None):
     # Filter out excluded words
     alts = {a for a in alts if a not in excluded_words}
 
+    # Build regex parts
     parts = []
     for a in alts:
-        if " " in a:
+        if " " in a:  # multi-word brand (e.g., "mountain hardwear")
             parts.append(r"\b" + re.escape(a).replace(r"\ ", r"\s+") + r"\b")
         else:
             parts.append(r"\b" + re.escape(a) + r"\b")
@@ -116,6 +123,10 @@ def compile_brand_regex(brands, extras=None):
     return re.compile("|".join(parts), re.IGNORECASE)
 
 def brand_acronym(brands):
+    """
+    Generate lowercase acronyms for multi-word brand names.
+    e.g., "Mountain Hardwear" → "mh"
+    """
     brand_aliases = []
     for brand in brands:
         words = brand.split()
@@ -127,15 +138,15 @@ def brand_acronym(brands):
 
 def extract_context_window(text, match, window_words=12):
     """
-    Extract context window around a brand mention for sentiment analysis.
+    Extract a context window around a matched brand mention.
     
     Args:
-        text: Full text containing the brand mention
+        text: Full text string
         match: Regex match object for the brand
-        window_words: Number of words to include on each side of the brand
+        window_words: Number of words to include before/after brand
     
     Returns:
-        str: Context window with brand mention in the middle
+        str: A substring containing brand + nearby words
     """
     s, e = match.start(), match.end()
     left = text[:s]
@@ -147,11 +158,11 @@ def extract_context_window(text, match, window_words=12):
     left_tokens = re.findall(word_re, left)
     right_tokens = re.findall(word_re, right)
 
-    # Get exactly window_words on each side, or as many as available
+    # Take up to window_words tokens before and after
     left_ctx = " ".join(left_tokens[-window_words:]) if len(left_tokens) >= window_words else " ".join(left_tokens)
     right_ctx = " ".join(right_tokens[:window_words]) if len(right_tokens) >= window_words else " ".join(right_tokens)
 
-    # Build the context window
+    # Build the window string
     if left_ctx and right_ctx:
         return f"{left_ctx} {mid} {right_ctx}"
     elif left_ctx:
@@ -161,11 +172,14 @@ def extract_context_window(text, match, window_words=12):
     else:
         return mid
 
+# Convert brands to lowercase
 outdoor_gear_brands = [b.lower() for b in outdoor_gear_brands]
 
+# Build regex pattern for brands + acronyms
 brand_re = compile_brand_regex(outdoor_gear_brands, extras=brand_acronym(outdoor_gear_brands))
 
 def find_keyword(word_list, text):
+    """Return first keyword found in text from given word list."""
     if not text:
         return None
     text_lower = text.lower()
@@ -175,62 +189,45 @@ def find_keyword(word_list, text):
             return word
     return None
 
-
+# Load sentiment-analysis pipeline from HuggingFace Transformers
 _classifier = pipeline("sentiment-analysis",
                        model="cardiffnlp/twitter-roberta-base-sentiment-latest")
 
 def get_sentiment(text, threshold, method):
     """
-    Get sentiment with custom approaches to reduce neutrals.
+    Classify sentiment of given text using chosen method.
     
     Args:
-        text: Text to analyze
-        threshold: Confidence threshold (0.0-1.0). Lower = more aggressive classification
-        method: "threshold" or "weighted" - different approaches to reduce neutrals
+        text: String to analyze
+        threshold: Confidence cutoff for 'threshold' method
+        method: One of "threshold", "weighted", or "positive_bias"
     
     Returns:
-        tuple: (label, score) where label is 'POSITIVE', 'NEGATIVE', or 'NEUTRAL'
+        (label, score): label is 'POSITIVE'/'NEGATIVE'/'NEUTRAL'
     """
     res = _classifier(text, truncation=True, max_length=256)[0]
     label = res["label"]
     score = float(res["score"])
     
     if method == "threshold":
-        # If confidence is below threshold, classify as neutral
+        # Use neutral if score < threshold
         if score < threshold:
             return "NEUTRAL", score
         return label, score
     
     elif method == "weighted":
-        # More aggressive: use weighted scoring to favor positive/negative
-        # Get all possible labels and scores
+        # Use alternative scoring to reduce neutral dominance
         all_results = _classifier(text, truncation=True, max_length=256, top_k=None)
-        
-        # Find the highest scoring non-neutral label
-        best_label = "NEUTRAL"
-        best_score = 0.0
-        
+        best_label, best_score = "NEUTRAL", 0.0
         for result in all_results:
             if result["label"] != "NEUTRAL" and result["score"] > best_score:
-                best_label = result["label"]
-                best_score = result["score"]
-        
-        # If we found a non-neutral with decent confidence, use it
-        if best_score > 0.2:  # Very low threshold for non-neutral
-            return best_label, best_score
-        else:
-            return "NEUTRAL", score
+                best_label, best_score = result["label"], result["score"]
+        return (best_label, best_score) if best_score > 0.2 else ("NEUTRAL", score)
     
     elif method == "positive_bias":
-        # Even more aggressive: heavily favor positive sentiment for gear recommendations
-        # Get all possible labels and scores
+        # Favor positive scores when recommending gear
         all_results = _classifier(text, truncation=True, max_length=256, top_k=None)
-        
-        # Find positive and negative scores
-        positive_score = 0.0
-        negative_score = 0.0
-        neutral_score = 0.0
-        
+        positive_score, negative_score, neutral_score = 0.0, 0.0, 0.0
         for result in all_results:
             if result["label"] == "positive":
                 positive_score = result["score"]
@@ -238,63 +235,84 @@ def get_sentiment(text, threshold, method):
                 negative_score = result["score"]
             elif result["label"] == "neutral":
                 neutral_score = result["score"]
-        
-        # Heavily bias toward positive for gear recommendations
-        # If positive is even slightly higher than neutral, choose positive
-        if positive_score > neutral_score * 0.6:  # Even lower bar for positive
+        if positive_score > neutral_score * 0.6:
             return "positive", positive_score
-        elif negative_score > neutral_score * 1.5:  # Much higher bar for negative
+        elif negative_score > neutral_score * 1.5:
             return "negative", negative_score
         else:
             return "neutral", neutral_score
     
     else:
-        # Default behavior
+        # Default: return original pipeline result
         return label, score
 
 def create_df(window_words, sentiment_threshold, sentiment_method, client, secret, agent):
+    """
+    Scrape Reddit posts and comments for outdoor gear mentions,
+    then run sentiment analysis on matched context.
+    
+    Args:
+        window_words: # of context words around brand mentions
+        sentiment_threshold: cutoff for neutral classification
+        sentiment_method: one of the custom sentiment methods
+        client, secret, agent: Reddit API credentials
+    
+    Returns:
+        pd.DataFrame with columns:
+          subreddit, sub_name, sub_link, comment_created, comment_body,
+          weather_season, gear_type, gear_brand, brand_context,
+          sent_label, sent_score
+    """
     reddit = praw.Reddit(
-    client_id=client,
-    client_secret=secret,    
-    user_agent=agent
-)
+        client_id=client,
+        client_secret=secret,
+        user_agent=agent,
+    )
+
     data = []
 
     for name in subreddits:
+        # Get subreddit object
         subreddit = reddit.subreddit(name)
 
+        # Iterate over top 400 hot submissions
         for submission in subreddit.hot(limit=400):
-            if find_keyword(weather_season_words, submission.title):
-                # Sort comments by top (most upvoted) before accessing them
-                submission.comment_sort = "top"
-                submission.comments.replace_more(limit=5)
+            # Skip if no weather/season keyword in title
+            if not find_keyword(weather_season_words, submission.title):
+                continue
 
-                for comment in submission.comments.list():
-                    body = comment.body or ""
-                    norm = normalize_text(body)
+            submission.comment_sort = "top"
+            submission.comments.replace_more(limit=0)  # load all top-level comments
 
-                    weather_match = find_keyword(weather_season_words, body)
-                    gear_match = find_keyword(hiking_gear_categories, body)
+            for comment in submission.comments.list():
+                body = comment.body or ""
+                norm = normalize_text(body)
 
-                    if not (weather_match and gear_match):
-                        continue
+                # Require both weather and gear keyword
+                weather_match = find_keyword(weather_season_words, body)
+                gear_match = find_keyword(hiking_gear_categories, body)
+                if not (weather_match and gear_match):
+                    continue
 
-                    for match in brand_re.finditer(norm):
-                        ctx = extract_context_window(norm, match, window_words=window_words)
-                        sent_label, sent_score = get_sentiment(ctx, threshold=sentiment_threshold, method=sentiment_method)
+                # Look for brand mentions and run sentiment
+                for match in brand_re.finditer(norm):
+                    ctx = extract_context_window(norm, match, window_words=window_words)
+                    sent_label, sent_score = get_sentiment(
+                        ctx, threshold=sentiment_threshold, method=sentiment_method
+                    )
 
-                        data.append({
-                            "subreddit": name,
-                            "sub_name": submission.title,
-                            "sub_link": submission.url,
-                            "comment_created": pd.to_datetime(comment.created_utc, unit="s"),
-                            "comment_body": body,
-                            "weather_season": weather_match,
-                            "gear_type": gear_match,
-                            "gear_brand": match.group(0).lower(),   # exact matched alias
-                            "brand_context": ctx,               # text used for sentiment
-                            "sent_label": sent_label,
-                            "sent_score": sent_score,
-                        })
+                    data.append({
+                        "subreddit": name,
+                        "sub_name": submission.title,
+                        "sub_link": submission.url,
+                        "comment_created": pd.to_datetime(getattr(comment, "created_utc", None), unit="s", errors="coerce"),
+                        "comment_body": body,
+                        "weather_season": weather_match,
+                        "gear_type": gear_match,
+                        "gear_brand": match.group(0).lower(),
+                        "brand_context": ctx,
+                        "sent_label": str(sent_label),
+                        "sent_score": float(sent_score) if sent_score is not None else None,
+                    })
 
     return pd.DataFrame(data)
