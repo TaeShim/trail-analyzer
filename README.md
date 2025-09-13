@@ -24,16 +24,16 @@ This project integrates trail geometries (via Overpass API + Open-Meteo weather)
   - Writes to Delta tables for downstream analysis and Power BI visualization
 
   
-**Libraries:
-    pandas
-    geopandas
-    shapely
-    praw
-    asyncpraw
-    transformers
-    torch
-    requests
-    requests_cache
-    openmeteo-requests
-    retry-requests
-    databricks-sql-connector
+- **Libraries:**
+    - pandas
+    - geopandas
+    - shapely
+    - praw
+    - asyncpraw
+    - transformers
+    - torch
+    - requests
+    - requests_cache
+    - openmeteo-requests
+    - retry-requests
+    - databricks-sql-connector
