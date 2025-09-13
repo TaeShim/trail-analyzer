@@ -23,7 +23,10 @@ This project integrates trail geometries (via Overpass API + Open-Meteo weather)
   - Credentials securely retrieved from Databricks Secrets (`trailanalyzer-dev`)  
   - Writes to Delta tables for downstream analysis and Power BI visualization
 
-  
+## ⚙️ Setup
+
+### 1. Requirements
+- Python 3.10+  
 - **Libraries:**
     - pandas
     - geopandas
@@ -37,3 +40,33 @@ This project integrates trail geometries (via Overpass API + Open-Meteo weather)
     - openmeteo-requests
     - retry-requests
     - databricks-sql-connector
+ 
+- A cluster or SQL warehouse  
+- A secret scope named `trailanalyzer-dev`
+
+---
+
+### 2. Databricks Secrets
+Add the following keys to your **Databricks secret scope** (`trailanalyzer-dev`):
+
+- `DB_SERVER_HOSTNAME`  
+- `DB_HTTP_PATH`  
+- `DB_TOKEN`  
+- `REDDIT_CLIENT_ID`  
+- `REDDIT_SECRET`  
+- `REDDIT_USER_AGENT`
+
+---
+
+### 3. Initialize Database Schema
+Run the schema initializer:
+
+```bash
+python data/init_db.py
+```
+
+### 4. Create Databrick Notebook
+ 1) Create a notebook inside the 'data' directory and copy the data_import.py into it
+ 2) Run the notebook
+ 
+ 
