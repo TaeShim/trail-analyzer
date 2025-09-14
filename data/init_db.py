@@ -47,7 +47,7 @@ def main():
     # Create a Databricks SQL connection and run the schema file
     with sql.connect(server_hostname=DB_HOST, access_token=DB_TOKEN, http_path=DB_HTTP) as conn:
         with conn.cursor() as cursor:
-            run_sql_file('schema.sql', cursor)
+            run_sql_file('data/schema.sql', cursor)
             print("Database initialized successfully")
 
 if __name__ == "__main__":
